@@ -1,0 +1,16 @@
+{
+  "background_color": "#f5fafd",
+  "theme_color":"#f5fafd",
+  "description": "The 256 Game",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "name": "The 256 Game",
+  "short_name": "256",
+  "start_url": "/256/"
+}
