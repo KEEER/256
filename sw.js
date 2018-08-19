@@ -1,4 +1,4 @@
-var cacheName = '256Gamev1';
+var cacheName = '256Gamev0.1.2';
 var appShellFiles = ['/256/','/256/index.html','/256/icon.png'];
 self.addEventListener('install', function(e) {
   console.log('[Service Worker] Install');
