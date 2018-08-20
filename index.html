@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <script>var CUSTOM="CUSTOM",games=[["dCbd","dbcAbd","Ici"],["Fc---f","aaaaaaaaAdp","Hcd-d"],["Hcc-e","Pdp",CUSTOM]];</script>
@@ -93,11 +93,6 @@ body{
 <body>
 <span id="controls">
 <button onclick="localStorage[GAMEKEY]='';location.reload();">Clear and replay</button>
-<button onclick="window.onkeyup({keyCode:87});">↑ / W</button>
-<button onclick="window.onkeyup({keyCode:83});">↓ / S</button>
-<button onclick="window.onkeyup({keyCode:65});">← / A</button>
-<button onclick="window.onkeyup({keyCode:68});">→ / D</button>
-<input id="game"><button onclick="try{game=Game.fromString($('#game').value);game.render();}catch(e){alert('Unable to load from string: '+e)}">Load Game</button>
 <span id="status"></span>
 </span>
 <div class="padding"></div>
@@ -114,6 +109,7 @@ body{
 
 <script type="text/javascript">
 var GAMEKEY="game_256_main";
+var TOUCH_THRESHOLD=32;
 var $=function(sel){
 	return (
 		sel.startsWith("#")
@@ -375,13 +371,40 @@ Game.prototype.render=function(getListener){
 		}
 		statusBox.innerText=ctx.toString();
 	};
+	window.ontouchstart=function(e){
+		var touch=e.changedTouches[0];
+		window._pageX=touch.pageX;
+		window._pageY=touch.pageY;
+	};
+	window.ontouchend=function(e){
+		var touch=e.changedTouches[0];
+		var dx=touch.pageX-window._pageX;
+		var dy=touch.pageY-window._pageY;
+		var absDx=Math.abs(dx);
+		var absDy=Math.abs(dy);
+		var direction;
+		if(absDx>TOUCH_THRESHOLD&&absDy<TOUCH_THRESHOLD){//horizontal
+			if(dx>0) direction=Game.RIGHT;
+			else direction=Game.LEFT;
+		}
+		if(absDy>TOUCH_THRESHOLD&&absDx<TOUCH_THRESHOLD){//vertical
+			if(dy>0) direction=Game.DOWN;
+			else direction=Game.UP;
+		}
+		if(direction){
+			if(ctx.move(direction)) ctx.clickable=true;
+		}
+	};
+	window.ontouchmove=function(e){
+		e.preventDefault();
+	};
 	localStorage[GAMEKEY]=JSON.stringify(ctx);
 };
 Game.prototype.move=function(direction){
 	if(this.clickable)return false;
 	this.virtual=direction;
 	var size=this.map.length;
-	var moved=false;
+	var moved=false;m
 	for(var i=0;i<size;i++){
 		var available=0;
 		var lastTile,lastX;
