@@ -394,6 +394,13 @@ Game.prototype.render=function(getListener){
 		if(direction){
 			if(ctx.move(direction)) ctx.clickable=true;
 		}
+		if((!ctx.won)&&ctx.reachedTarget()){
+			alert("You won! Great job!");
+			ctx.won=true;
+		}else{
+			localStorage[GAMEKEY]=JSON.stringify(ctx);
+		}
+		statusBox.innerText=ctx.toString();
 	};
 	window.ontouchmove=function(e){
 		e.preventDefault();
@@ -404,7 +411,7 @@ Game.prototype.move=function(direction){
 	if(this.clickable)return false;
 	this.virtual=direction;
 	var size=this.map.length;
-	var moved=false;m
+	var moved=false;
 	for(var i=0;i<size;i++){
 		var available=0;
 		var lastTile,lastX;
