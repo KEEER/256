@@ -95,6 +95,7 @@ body{
 <body>
 <span id="controls">
 <button onclick="localStorage[GAMEKEY]='';location.reload();">Clear and replay</button>
+<button id="cont" style="display:none;">Continue</button>
 <span id="status"></span>
 </span>
 <div class="padding"></div>
@@ -319,7 +320,7 @@ Game.prototype.render=function(getListener){
 	var ctx=this;
 	for(var i=0;i<spaces.length;i++){
 		(function(el){
-			if(!getListener) el.addEventListener("click",function(){
+			if(!getListener) el.onclick=function(){
 				if(!ctx.clickable) return;
 				pos=JSON.parse(el.getAttribute("coords"));
 				if(ctx.tile.apply(ctx,pos)())return;
@@ -337,8 +338,8 @@ Game.prototype.render=function(getListener){
 					localStorage[GAMEKEY]="";
 				}
 				statusBox.innerText=ctx.toString();
-			});
-			else el.addEventListener("click",getListener(el));
+			};
+			else el.onclick=getListener(el);
 		})(spaces[i]);
 	}
 	window.onkeyup=function(e){
@@ -526,8 +527,103 @@ var startup=function(){
 		return function(){
 			if(!gameStr) return;
 			if(gameStr==CUSTOM){
-				//TODO
-				alert("TBD");
+				hint.innerHTML="1. choose size";
+				var fake=[[],[]];
+				for(var v=2;v<6;v++) fake[(v>3)?1:0][(v-2)%2]=new Tile(v);
+				var map=new Game([NaN],fake);
+				map.render(function(el){
+					var pos=JSON.parse(el.getAttribute("coords"));
+					return function(){
+						var size=2+pos[0]*2+pos[1];
+						hint.innerHTML="2. click on blocks";
+						var fake=[];
+						for(var i=0;i<size;i++){
+							fake[i]=[];
+							for(var j=0;j<size;j++) fake[i].push(null);
+						}
+						var blockmap=new Game([NaN],fake);
+						blockmap.render(function(el){
+							var pos=JSON.parse(el.getAttribute("coords"));
+							var gs=blockmap.tile.apply(blockmap,pos);
+							return function(){
+								if(gs()){
+									var el=gs();
+									el.fadeout();
+									gs(null);
+								}
+								else{
+									var tile=new Tile(Tile.BLOCK);
+									gs(tile);
+									wrap.appendChild(tile.render());
+								}
+							};
+						});
+						cont.style.display="block";
+						cont.onclick=function(){
+							blockmap.render();
+							hint.innerHTML="3. Now play it.";
+							cont.onclick=function(){
+								window.ontouchend=null;
+								hint.innerHTML="4. Click on the tiles that shall become target(s).";
+								var tiles=$(".empty");
+								for(var i=0;i<tiles.length;i++){
+									(function(el){
+										el.onclick=function(e){
+											var pos=JSON.parse(el.getAttribute("coords"));
+											var value;	
+											if(!(value=blockmap.tile.apply(blockmap,pos)()))return;
+											value=value.value;
+											if(value==-1)return;
+											if(el.chosen){
+												el.chosen=false;
+												el.style.backgroundColor="";
+												return;
+											}
+											el.chosen=true;
+											el.style.backgroundColor="rgba(255,255,0,0.2)";
+										};
+									})(tiles[i]);
+								}
+								cont.onclick=function(){
+									var tiles=$(".empty");
+									var str="";
+									var A=64,a=96;
+									var lastValue;
+									for(var i=0;i<tiles.length;i++){
+										var el=tiles[i];
+										if(!el.chosen) continue;
+										var pos=JSON.parse(el.getAttribute("coords"));
+										var value=blockmap.tile.apply(blockmap,pos)().value;
+										if(lastValue) str+=String.fromCodePoint(a+lastValue);
+										lastValue=value;
+									}
+									if(!lastValue) return;
+									str+=String.fromCodePoint(A+lastValue);
+									str+=String.fromCodePoint(a+size);
+									var streak=0;
+									for(var x=0;x<size;x++){
+										for(var y=0;y<size;y++){
+											streak++;
+											var tile=blockmap.tile(y,x)();
+											if(!tile) continue;
+											if(tile.value!=Tile.BLOCK) continue;
+											streak--;
+											console.log(x+y+str);
+											if(streak)
+												str+=String.fromCodePoint(a+streak);
+											str+="-";
+											streak=0;
+										}
+									}
+									if(streak) str+=String.fromCodePoint(a+streak);
+									alert("Game generated. We will load your game now, so share the URL now with your friends!");
+									location.hash="#"+str;
+									location.reload();
+								};
+							};
+						};
+					};
+				});
 				return;
 			}
 			window.game=Game.fromString(gameStr);
