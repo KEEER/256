@@ -541,7 +541,7 @@ var startup=function(){
 if(!localStorage[GAMEKEY]){
 	if(!location.hash) var game=startup();
 	else try{
-		window.game=Game.fromString(location.hash.substr(1));
+		window.game=Game.fromString(location.hash.substr(1).split("?")[0]);
 		game.render();
 	}catch(e){
 		alert("Unable to load from hash string: "+e);
