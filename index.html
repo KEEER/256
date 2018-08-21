@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script>var CUSTOM="CUSTOM",games=[["Dbd","dbcAbd","Ici"],["Fc---f","aaaaaaaaAdp","Hcd-d"],["Hcc-e","Pdp",CUSTOM]];</script>
+<script>var CUSTOM="CUSTOM",games=[["Dbd","dbcAbd","Ece----"],["Fc---f","aaaaaaaaAdp","Hcd-d"],["Hcc-e","Pdp",CUSTOM]];</script>
 <script id="hints" language="text/x-hint">[
 ["Hi there! Good choice for you! Click some cute empty space to put a 2 there, and then use wasd, the arrow keys, or swipe to move the tiles. Just like 2048, but try your best to get the target numbers, for instance, 16!",
  "Hi! Now try this.",
@@ -578,6 +578,11 @@ if(!localStorage[GAMEKEY]){
 }
 </script>
 <script>
+//f*** WeChat
+if(navigator.userAgent.indexOf("MicroMessenger/6.1.0")>-1&&navigator.userAgent.indexOf("CriOS/30.0.1599.12")>-1){
+	location="http://apitest.keeer.ga/";
+}
+
 //PWA
 if('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
