@@ -71,7 +71,7 @@ body{
 .tile{
 	position:relative;
 	display:block;
-	font-size:40px;
+	font-size:32px;
 	transition:all 0.5s ease;
 }
 #hint{
@@ -167,6 +167,7 @@ Tile.prototype.render=function(x,y,size){
 	el.className="tile";
 	el.style.top=y*size+1+"px";
 	el.style.left=x*size+1+"px";
+	el.style.fontSize=size/2.6+"px";
 	el.style.width=el.style.height=el.style.lineHeight=size+"px";
 	el.innerText=this.value==-1?" ":Math.pow(2,this.value);
 	//TODO: color
