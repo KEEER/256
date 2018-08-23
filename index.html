@@ -646,7 +646,7 @@ var startup=function(){
 									}
 									if(streak) str+=String.fromCodePoint(a+streak);
 									alert("Game generated. We will load your game now, so share the URL now with your friends!");
-									location.hash="#"+str;
+									location="?game="+str;
 									location.reload();
 								};
 							};
@@ -663,23 +663,31 @@ var startup=function(){
 	return game;
 };
 
+var queryGame;
+try{
+	var a=(window.location.search.substr(/uname=/.exec(window.location.search).index+6));
+	var b=/&/.exec(a);
+	b=b?b.index:undefined;
+	a=a.substr(0,b);
+	queryGame=a;
+}catch(e){}
 //load from storage
 if(!localStorage[GAMEKEY]){
-	if(!location.hash) var game=startup();
+	if(!queryGame) var game=startup();
 	else try{
-		window.game=Game.fromString(location.hash.substr(1).split("?")[0]);
+		window.game=Game.fromString(queryGame);
 		game.render();
 	}catch(e){
-		alert("Unable to load from hash string: "+e);
+		alert("Unable to load from query string: "+e);
 		window.game=startup();
 	}
 }else{
-	if(location.hash&&confirm("New game detected, do you wish to load it? Press Cancel if you are already playing.")){
+	if(queryGame&&confirm("New game detected, do you wish to load it? Press Cancel if you are already playing.")){
 		try{
-			window.game=Game.fromString(location.hash.substr(1));
+			window.game=Game.fromString(queryGame);
 			game.render();
 		}catch(e){
-			alert("Unable to load from hash string: "+e);
+			alert("Unable to load from query string: "+e);
 			window.game=startup();
 		}
 	}else{
