@@ -587,7 +587,7 @@ var startup=function(){
 								}
 							};
 						});
-						cont.style.display="block";
+						cont.style.display="inline";
 						cont.onclick=function(){
 							blockmap.render();
 							hint.innerHTML="3. Now play it.";
@@ -646,8 +646,7 @@ var startup=function(){
 									}
 									if(streak) str+=String.fromCodePoint(a+streak);
 									alert("Game generated. We will load your game now, so share the URL now with your friends!");
-									location="/256/?game="+str;
-									location.reload();
+									location="?game="+str;
 								};
 							};
 						};
@@ -665,7 +664,7 @@ var startup=function(){
 
 var queryGame;
 try{
-	var a=(window.location.search.substr(/uname=/.exec(window.location.search).index+6));
+	var a=(window.location.search.substr(/game=/.exec(window.location.search).index+5));
 	var b=/&/.exec(a);
 	b=b?b.index:undefined;
 	a=a.substr(0,b);
