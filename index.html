@@ -89,14 +89,41 @@ body{
 #controls{
 	position:fixed;
 	top:0;
+	text-align:center;
+}
+#logo{
+	height:32px;
+}
+a#link{
+	color:#002d4d;
+	text-decoration:none;
+	height:26px;
+	overflow:hidden;
+	margin:0;
+	position:fixed;
+	top:0;
+	width:100%;
+	left:0;
+}
+#link-text{
+	position:relative;
+	bottom:13px;
+}
+#status, button{
+	margin:0;
+	position:relative;
+	top:4px;
 }
 </style>
 </head>
 <body>
 <span id="controls">
+<a id="link" href="https://www.keeer.cf/"><img id="logo" src="./logo.png" /><span id="link-text">Presents</span></a>
+<br />
+<span id="status"></span>
+<br />
 <button onclick="localStorage[GAMEKEY]='';location.reload();">Clear and replay</button>
 <button id="cont" style="display:none;">Continue</button>
-<span id="status"></span>
 </span>
 <div class="padding"></div>
 <div id="wrapper-out">
@@ -108,7 +135,7 @@ body{
 </div>
 </div>
 <div class="padding"></div>
-<div id="hint"></div>
+<div id="hint">Some puzzle... I don't know.</div>
 
 <script type="text/javascript">
 var GAMEKEY="game_256_main";
