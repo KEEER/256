@@ -670,6 +670,7 @@ try{
 	a=a.substr(0,b);
 	queryGame=a;
 }catch(e){}
+if(queryGame) document.title="Custom Game | 256 | KEEER";
 //load from storage
 if(!localStorage[GAMEKEY]){
 	if(!queryGame) var game=startup();
