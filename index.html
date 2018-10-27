@@ -18,6 +18,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <meta name="theme-color" id="themecolor" content="#f5fafd">
 <meta name="viewport" content="width=320">
+<link rel="shortcut icon" href="./favicon.ico" />
 <style>
 html{
 	height:100%;
@@ -94,33 +95,33 @@ body{
 	width:100%;
 }
 #logo{
-	height:32px;
+	height:20px;
 }
 a#link{
 	color:#002d4d;
 	text-decoration:none;
-	height:26px;
+	height:40px;
 	overflow:hidden;
 	margin:0;
 	position:fixed;
-	top:0;
+	top:5px;
 	width:100%;
 	left:0;
 }
 #link-text{
 	position:relative;
-	bottom:13px;
+	bottom:5px;
 }
 #status, button{
 	margin:0;
 	position:relative;
-	top:4px;
+	top:9px;
 }
 </style>
 </head>
 <body>
 <span id="controls">
-<a id="link" href="javascript:alert('Main Page construction in progress.');"><img id="logo" src="./logo.png" /><span id="link-text">Presents</span></a>
+<a id="link" href="javascript:alert('Main Page construction in progress.');"><img id="logo" src="./logo.svg" /><span id="link-text">&nbsp;Presents</span></a>
 <br />
 <span id="status"></span>
 <br />
@@ -230,7 +231,7 @@ var Game=function(targets,map){
 //@example Game.fromString("Hcd-d");
 Game.fromString=function(str){
 	var pos=0;
-	
+
 	//parse the targets
 	var targetDone=false;
 	var targets=[];
@@ -241,19 +242,19 @@ Game.fromString=function(str){
 		targets.push(num);
 		pos++;
 	}
-	
+
 	//parse size
 	var size=isLower(str,pos);
 	if(!size) throw new TypeError("Size not lowercase alphabet");
 	pos++;
-	
+
 	//generate empty map
 	var map=[];
 	for(var i=0;i<size;i++){
 		map[i]=[];
 		for(var j=0;j<size;j++) map[i].push(null);
 	}
-	
+
 	//load map
 	//TODO load numbers
 	var mapstr=str.substr(pos);
@@ -269,7 +270,7 @@ Game.fromString=function(str){
 				map[coord[1]][coord[0]]=new Tile(Tile.BLOCK); //map is stored like [y][x]
 				coord[0]++;
 				break;
-				
+
 				default:
 				throw new TypeError("Unknown command "+mapstr.substr(pos,1));
 				break;
@@ -296,16 +297,16 @@ Game.prototype._real=function(x,y){
 	switch(this.virtual){
 		case Game.UP:
 		return [x,y];
-		
+
 		case Game.DOWN:
 		return [size-x-1,y];
-		
+
 		case Game.LEFT:
 		return [y,x];
-		
+
 		case Game.RIGHT:
 		return [y,size-x-1];
-		
+
 		default:
 		throw new Error("Virtual Direction illegal");
 	}
@@ -358,10 +359,14 @@ Game.prototype.render=function(getListener){
 				wrap.appendChild(tile.render(pos[0],pos[1],size));
 				ctx.clickable=false;
 				if((!ctx.won)&&ctx.reachedTarget()){
+          //won
 					alert("You won! Great job!");
 					ctx.won=true;
+          localStorage[GAMEKEY]="";
+          location.reload();
 				}
 				if(!ctx.movable()){
+          //over
 					alert("Game over! Refresh to restart the game.");
 					ctx.over=true;
 					localStorage[GAMEKEY]="";
@@ -378,22 +383,22 @@ Game.prototype.render=function(getListener){
 			case 38: //up
 			if(ctx.move(Game.UP)) ctx.clickable=true;
 			break;
-			
+
 			case 65: //a
 			case 37: //left
 			if(ctx.move(Game.LEFT)) ctx.clickable=true;
 			break;
-			
+
 			case 83: //s
 			case 40: //down
 			if(ctx.move(Game.DOWN)) ctx.clickable=true;
 			break;
-			
+
 			case 68: //d
 			case 39: //right
 			if(ctx.move(Game.RIGHT)) ctx.clickable=true;
 			break;
-			
+
 			default:
 		}
 		if((!ctx.won)&&ctx.reachedTarget()){
@@ -599,7 +604,7 @@ var startup=function(){
 									(function(el){
 										el.onclick=function(e){
 											var pos=JSON.parse(el.getAttribute("coords"));
-											var value;	
+											var value;
 											if(!(value=blockmap.tile.apply(blockmap,pos)()))return;
 											value=value.value;
 											if(value==-1)return;
