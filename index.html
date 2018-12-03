@@ -143,7 +143,7 @@ a#link{
 
 <script type="text/javascript">
 var GAMEKEY="game_256_main";
-var TOUCH_THRESHOLD=32;
+var TOUCH_THRESHOLD=64;
 var $=function(sel){
 	return (
 		sel.startsWith("#")
@@ -172,8 +172,9 @@ var BLACK="#002d4d",WHITE="#f5fafd";
 //FIXME replace this with real game
 var gameEncoded="Hcd-d";
 
-//TODO documentation
 //@function getset
+//@param _get {Function} getter
+//@param _set {Function} setter
 function getset(_get,_set){ //add _ to avoid using keywords
 	return function GetSet(){
 		if(arguments.length==0)return _get();
@@ -188,7 +189,12 @@ var Tile=function(value){
 	this.value=value;
 };
 Tile.BLOCK=-1;
+//@method Tile.render(x,y,size)
+//@param x {Number} x position
+//@param y {Number} y position
+//@param size {Number} the size (in px) of the tile
 Tile.prototype.render=function(x,y,size){
+  //this.el is the element for this tile
 	if(!this.el){
 		this.el=document.createElement("span");
 		var parent=this.parent=document.createElement("div");
@@ -209,6 +215,8 @@ Tile.prototype.render=function(x,y,size){
 	}
 	return this.parent;
 }
+//@method Tile.fadeout()
+//@description fade out the element and remove it from DOM
 Tile.prototype.fadeout=function(){
 	this.el.style.opacity=0;
 	var el=this.el.parentNode;
@@ -227,7 +235,8 @@ var Game=function(targets,map){
 	this.targets=targets;
 	this.map=map;
 };
-//@function Game.fromString
+//@function Game.fromString(str)
+//@param str {String} the string representing the game
 //@description load a game from a game string (deserialization)
 //@example Game.fromString("Hcd-d");
 Game.fromString=function(str){
@@ -292,7 +301,9 @@ Game.RIGHT="Author: Alan-Liang@KEEER";
 Game.UP="Email: alan-liang@keeer.ga";
 Game.DOWN="I LOVE RDFZ";
 Game.prototype.virtual=Game.LEFT; //no virtual
-//@function (private)
+//@method Game._real(x,y)
+//@private
+//@description get the real coords when applying "virtual"(to simplify the process of moving)
 Game.prototype._real=function(x,y){
 	var size=this.map.length;
 	switch(this.virtual){
@@ -312,10 +323,11 @@ Game.prototype._real=function(x,y){
 		throw new Error("Virtual Direction illegal");
 	}
 }
-//@function game.tile
+//@method Game.tile(x,y)
+//@description rerenders and returns the tile GetSet function, concerning the virtual directions
 //@param x {Number} x coord
 //@param y {Number} y coord
-//@return {Function} GetSet of the tile
+//@return {Function} GetSet of the tile at (x,y)
 Game.prototype.tile=function(x,y){
 	var map=this.map;
 	var real=this._real(x,y);
@@ -331,6 +343,9 @@ Game.prototype.tile=function(x,y){
 		}
 	);
 }
+//@method Game.render([getListener])
+//@description render the whole game.
+//@param [getListener] {Function({HTMLElement})} the function that returns the listener of the given element
 Game.prototype.render=function(getListener){
 	var WIDTH=256;
 	var size=this.size=256/this.map.length;
@@ -350,6 +365,7 @@ Game.prototype.render=function(getListener){
 	var spaces=$(".empty");
 	var ctx=this;
 	for(var i=0;i<spaces.length;i++){
+    // TODO: tidy this up
 		(function(el){
 			if(!getListener) el.onclick=function(){
 				if(!ctx.clickable) return;
@@ -446,34 +462,55 @@ Game.prototype.render=function(getListener){
 	};
 	localStorage[GAMEKEY]=JSON.stringify(ctx);
 };
+//@method Game.move(direction)
+//@param direction {Game.UP||Game.DOWN||Game.LEFT||Game.RIGHT} the direction to move
+//@return {Boolean} is this move valid
 Game.prototype.move=function(direction){
+  //if it is not a round to move, than skip that
 	if(this.clickable)return false;
+  //set the "virtual direction"
+  //since here, all operations can be simplified to moving from right to left
 	this.virtual=direction;
 	var size=this.map.length;
 	var moved=false;
+  //for every column...
 	for(var i=0;i<size;i++){
+    //the first available empty space from L to R
 		var available=0;
+    //lastTile is the last nonempty tile
+    //lastX is the x coord of lastTile, concerning virtual
 		var lastTile,lastX;
 		lastTile=lastX=null;
+    //for each tile...
 		for(var j=0;j<size;j++){
 			var tile=this.tile(j,i)();
+      //if it is blank, skip it
 			if(tile==null) continue;
+      //if it is a block, reset the lastTile and lastX values and set available to the next x coord
 			if(tile.value==Tile.BLOCK){
 				available=j+1;
 				lastTile=lastX=null;
 				continue;
 			}
+      //if they could be combined...
 			if(lastTile&&(tile.value==lastTile.value)){
-				tile.value++;
-				moved=true;
+				tile.value++; //this is okay because value is stored as log2(real value)
+				moved=true; //it could be moved.
+        //fadeout last tile because it is combined
 				lastTile.fadeout();
+        //set the tile at last position to the new tile
 				this.tile(lastX,i)(tile);
+        //set the tile at this position to blank
 				this.tile(j,i)(null);
+        //a tile couldn't be combined twice in one move
 				lastTile=null;
-			}else{
+			}else{ //if the tiles are not combinable
 				lastTile=tile;
+        //if it moved
 				if(available!=j){
+          //set the original position to empty...
 					this.tile(j,i)(null);
+          //...and set the tile to the new position
 					this.tile(available,i)(tile);
 					moved=true;
 				}
@@ -482,10 +519,14 @@ Game.prototype.move=function(direction){
 			}
 		}
 	}
+  //erase all virtuals
 	this.virtual=Game.LEFT;
 	return moved;
 }
+//@property Game.clickable indicates if the game required the player to click
 Game.prototype.clickable=true;
+//@method Game.targetString()
+//@return a human-readable string of all the targets
 Game.prototype.targetString=function(){
 	var targets="";
 	for(var i=0;i<this.targets.length;i++){
@@ -494,6 +535,9 @@ Game.prototype.targetString=function(){
 	}
 	return targets;
 };
+//@method Game.mapCopy(map)
+//@param map {Array} the old map
+//@return {Array} a deepcopy of the old map
 Game.mapCopy=function(map){
 	var newmap=[];
 	for(var i=0;i<map.length;i++){
@@ -506,13 +550,19 @@ Game.mapCopy=function(map){
 	}
 	return newmap;
 };
+//@method Game.movable()
+//@return {Boolean} if this game is still movable (i.e. alive)
 Game.prototype.movable=function(){
+  //copy the game
 	var newgame=new Game(this.targets, Game.mapCopy(this.map));
 	newgame.clickable=false;
+  //emulates all moves
 	if(newgame.move(Game.UP)||newgame.move(Game.DOWN)||newgame.move(Game.LEFT)||newgame.move(Game.RIGHT))
 		return true;
 	return false;
 };
+//@method Game.reachedTarget()
+//@return {Boolean} if the player reached all the targets (i.e. won)
 Game.prototype.reachedTarget=function(){
 	var timesLeft={};
 	for(var i=0;i<this.targets.length;i++){
@@ -530,6 +580,8 @@ Game.prototype.reachedTarget=function(){
 	for(i in timesLeft) if(timesLeft[i]>0) return false;
 	return true;
 };
+//@method Game.toString()
+//@return {String} a human-readable string that indicates the current game state
 Game.prototype.toString=function(){
 	return "256 Game | "+
 	       "Move: "+(this.clickable?"Select where 2 should go":"Make a move")+" | "+
@@ -537,9 +589,12 @@ Game.prototype.toString=function(){
 		   (this.won?"You won, good job!":this.over?"Game over;)":"Good luck!");
 };
 
+//@function startup()
+//@description initialize the start screen (i.e. select game)
 var startup=function(){
 	var gamemap=[];
 	var count=0;
+  //generate the fake game map
 	for(var i=0;i<games.length;i++){
 		gamemap.push([]);
 		for(var j=0;j<games.length;j++)
@@ -551,24 +606,31 @@ var startup=function(){
 						new Tile(count++)
 				);
 	}
+  //create a fake game
 	var game=new Game([-1e100,NaN,1e100],gamemap);
 	hint.innerHTML="Hi there! Click something to begin your journey. Maybe... Start with 1?";
 	window.hints=JSON.parse($("#hints").innerHTML);
-	game.fake=true; //a fake game
+	game.fake=true; //mark as a fake game
+  //render with a custom listener
 	game.render(function(el){
+    //parse the coords
 		var pos=JSON.parse(el.getAttribute("coords"));
+    //get the game string and the hint string
 		var gameStr=games[pos[1]][pos[0]];
 		var hintStr=hints[pos[1]][pos[0]];
 		return function(){
 			if(!gameStr) return;
 			if(gameStr==CUSTOM){
+        //1. choose map size
 				hint.innerHTML="1. choose size";
 				var fake=[[],[]];
 				for(var v=2;v<6;v++) fake[(v>3)?1:0][(v-2)%2]=new Tile(v);
 				var map=new Game([NaN],fake);
+        //render the game to continue to the next step
 				map.render(function(el){
 					var pos=JSON.parse(el.getAttribute("coords"));
 					return function(){
+            //2. choose blocks
 						var size=2+pos[0]*2+pos[1];
 						hint.innerHTML="2. click on blocks";
 						var fake=[];
@@ -576,17 +638,20 @@ var startup=function(){
 							fake[i]=[];
 							for(var j=0;j<size;j++) fake[i].push(null);
 						}
+            //generate a game of blocks
 						var blockmap=new Game([NaN],fake);
 						blockmap.render(function(el){
 							var pos=JSON.parse(el.getAttribute("coords"));
+              //the tile clicked
 							var gs=blockmap.tile.apply(blockmap,pos);
 							return function(){
+                //if nonblank, it must be a block
 								if(gs()){
 									var el=gs();
+                  //so remove it
 									el.fadeout();
 									gs(null);
-								}
-								else{
+								}else{ //else a blank, set it to a block
 									var tile=new Tile(Tile.BLOCK);
 									gs(tile);
 									wrap.appendChild(tile.render());
@@ -595,9 +660,12 @@ var startup=function(){
 						});
 						cont.style.display="inline";
 						cont.onclick=function(){
+              //3. play
+              //render with default listeners
 							blockmap.render();
 							hint.innerHTML="3. Now play it.";
 							cont.onclick=function(){
+                //4. set targets
 								window.ontouchend=null;
 								hint.innerHTML="4. Click on the tiles that shall become target(s).";
 								var tiles=$(".empty");
@@ -606,9 +674,12 @@ var startup=function(){
 										el.onclick=function(e){
 											var pos=JSON.parse(el.getAttribute("coords"));
 											var value;
+                      //if blank, ignore it
 											if(!(value=blockmap.tile.apply(blockmap,pos)()))return;
 											value=value.value;
-											if(value==-1)return;
+                      //if block, ignore it
+											if(value==Tile.BLOCK)return;
+                      //toggle state
 											if(el.chosen){
 												el.chosen=false;
 												el.style.backgroundColor="";
@@ -620,10 +691,12 @@ var startup=function(){
 									})(tiles[i]);
 								}
 								cont.onclick=function(){
+                  //5. generate string and play
 									var tiles=$(".empty");
 									var str="";
-									var A=64,a=96;
-									var lastValue;
+									var A=64,a=96; //char codes for capital and lowercase letter a
+									var lastValue; //indicates last value (to make it capital)
+                  //generate targets
 									for(var i=0;i<tiles.length;i++){
 										var el=tiles[i];
 										if(!el.chosen) continue;
@@ -632,25 +705,37 @@ var startup=function(){
 										if(lastValue) str+=String.fromCodePoint(a+lastValue);
 										lastValue=value;
 									}
+                  //if no tiles selected, ignore that
 									if(!lastValue) return;
+                  //write the last value
 									str+=String.fromCodePoint(A+lastValue);
+                  //write size
 									str+=String.fromCodePoint(a+size);
+                  //streaks of blanks
 									var streak=0;
 									for(var x=0;x<size;x++){
 										for(var y=0;y<size;y++){
 											streak++;
 											var tile=blockmap.tile(y,x)();
+                      //if blank, than just increase streak
 											if(!tile) continue;
+                      //if not a block, just increase streak
 											if(tile.value!=Tile.BLOCK) continue;
+                      //do not increase streak if it is a block
 											streak--;
-											console.log(x+y+str);
+                      //if there do exists a streak, write them
 											if(streak)
 												str+=String.fromCodePoint(a+streak);
+                      //write the block
 											str+="-";
+                      //reset streak counter
 											streak=0;
 										}
 									}
+                  //if there is still a streak, write it
 									if(streak) str+=String.fromCodePoint(a+streak);
+
+                  //and we're done!
 									alert("Game generated. We will load your game now, so share the URL now with your friends!");
 									location="?game="+str;
 								};
@@ -668,6 +753,7 @@ var startup=function(){
 	return game;
 };
 
+//if a game is in the querystring...
 var queryGame;
 try{
 	var a=(window.location.search.substr(/game=/.exec(window.location.search).index+5));
@@ -676,10 +762,13 @@ try{
 	a=a.substr(0,b);
 	queryGame=a;
 }catch(e){}
+//set the title if it does is custom game
 if(queryGame) document.title="Custom Game | 256 | KEEER";
-//load from storage
+//if there isn't a game
 if(!localStorage[GAMEKEY]){
+  //no game in query, just start a new one
 	if(!queryGame) var game=startup();
+  //else load the game from query
 	else try{
 		window.game=Game.fromString(queryGame);
 		game.render();
@@ -687,8 +776,10 @@ if(!localStorage[GAMEKEY]){
 		alert("Unable to load from query string: "+e);
 		window.game=startup();
 	}
-}else{
+}else{ //there is a game in storage
+  //there does exists a game in storage and in query
 	if(queryGame&&confirm("New game detected, do you wish to load it? Press Cancel if you are already playing.")){
+    //confirmed, player want to load a new game
 		try{
 			window.game=Game.fromString(queryGame);
 			game.render();
@@ -697,8 +788,11 @@ if(!localStorage[GAMEKEY]){
 			window.game=startup();
 		}
 	}else{
+    //parse the game (i.e. resume)
 		var obj=JSON.parse(localStorage[GAMEKEY]);
+    //if it is not fake...
 		if(!obj.fake){
+      //...load it
 			for(var i=0;i<obj.map.length;i++){
 				for(var j=0;j<obj.map[i].length;j++){
 					if(obj.map[i][j]){
