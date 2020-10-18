@@ -2,11 +2,13 @@ html{
 	color:#002d4d;
 	font-family:Consolas, Monaco, monospace;
 	overscroll-behavior:none;
+	touch-action:none;
 }
 body{
 	width:100%;
 	margin:0;
 	overscroll-behavior:none;
+	touch-action:none;
 }
 #wrapper-out{
 	display:flex;
