@@ -1,5 +1,5 @@
 var CUSTOM = 'CUSTOM'
-var games = [['Cc-a--a--a-', 'Dbd', 'Fc-g-'], ['Ec-c-d', 'Gcd-d', 'aaaaaaaaAdp'], ['Gd--a-c--c-a--', 'Gdc-a-d-a-c', CUSTOM]]
+var games = [['Cc-a--a--a-', 'Dbd', 'Ec-c-d'], ['Gc-g-', 'Gcd-d', 'aaaaaaaaAdp'], ['Gd--a-c--c-a--', 'Gdc-a-d-a-c', CUSTOM]]
 var hints = [
   ['Hi there! Good choice for you! Click some cute empty space to put a 2 there, and then use wasd, the arrow keys, or swipe to move the tiles. Just like 2048, but try your best to get the target numbers, for instance, 16!',
     'Hi! Now try this.',
