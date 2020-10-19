@@ -1,5 +1,5 @@
 var CUSTOM = 'CUSTOM'
-var games = [['Dbd', 'dbcAbd', 'Ece----'], ['Fc---f', 'aaaaaaaaAdp', 'Gcd-d'], ['Gcc-e', 'Pdp', CUSTOM]]
+var games = [['Cc-a--a--a-', 'Dbd', 'Fc-g-'], ['Ec-c-d', 'Gcd-d', 'aaaaaaaaAdp'], ['Gd--a-c--c-a--', 'Gdc-a-d-a-c', CUSTOM]]
 var hints = [
   ['Hi there! Good choice for you! Click some cute empty space to put a 2 there, and then use wasd, the arrow keys, or swipe to move the tiles. Just like 2048, but try your best to get the target numbers, for instance, 16!',
     'Hi! Now try this.',
@@ -38,6 +38,8 @@ var wrap = $('#wrapper')
 var statusBox = $('#status')
 var hint = $('#hint')
 var cont = $('#cont')
+var back = $('#back')
+var restart = $('#refresh')
 var BLACK = '#002d4d'
 var WHITE = '#f5fafd'
 
@@ -187,6 +189,11 @@ Game.prototype._real = function (x, y) {
       throw new Error('Virtual Direction illegal')
   }
 }
+Game.prototype.win = function () {
+  alert('恭喜通关！')
+  this.won = true
+  localStorage[GAMEKEY] = ''
+}
 // @method Game.tile(x,y)
 // @description rerenders and returns the tile GetSet function, concerning the virtual directions
 // @param x {Number} x coord
@@ -224,7 +231,7 @@ Game.prototype.render = function (getListener) {
     html += '</div>'
   }
   emptyWrap.innerHTML = html
-  statusBox.innerText = this.toString()
+  statusBox.innerHTML = this.toString()
   var spaces = $('.empty')
   var ctx = this
   for (var i = 0; i < spaces.length; i++) {
@@ -241,17 +248,15 @@ Game.prototype.render = function (getListener) {
           ctx.clickable = false
           if ((!ctx.won) && ctx.reachedTarget()) {
           // won
-            alert('You won! Great job!')
-            ctx.won = true
-            localStorage[GAMEKEY] = ''
+            ctx.win()
           }
           if (!ctx.movable()) {
           // over
-            alert('Game over! Refresh to restart the game.')
+            alert('Game Over...')
             ctx.over = true
             localStorage[GAMEKEY] = ''
           }
-          statusBox.innerText = ctx.toString()
+          statusBox.innerHTML = ctx.toString()
         }
       } else el.onclick = getListener(el)
     })(spaces[i])
@@ -282,12 +287,11 @@ Game.prototype.render = function (getListener) {
       default:
     }
     if ((!ctx.won) && ctx.reachedTarget()) {
-      alert('You won! Great job!')
-      ctx.won = true
+      ctx.win()
     } else {
       localStorage[GAMEKEY] = JSON.stringify(ctx)
     }
-    statusBox.innerText = ctx.toString()
+    statusBox.innerHTML = ctx.toString()
   }
   window.ontouchstart = function (e) {
     var touch = e.changedTouches[0]
@@ -313,12 +317,11 @@ Game.prototype.render = function (getListener) {
       if (ctx.move(direction)) ctx.clickable = true
     }
     if ((!ctx.won) && ctx.reachedTarget()) {
-      alert('You won! Great job!')
-      ctx.won = true
+      ctx.win()
     } else {
       localStorage[GAMEKEY] = JSON.stringify(ctx)
     }
-    statusBox.innerText = ctx.toString()
+    statusBox.innerHTML = ctx.toString()
   }
   window.ontouchmove = function (e) {
     e.preventDefault()
@@ -394,12 +397,19 @@ Game.prototype.clickable = true
 // @method Game.targetString()
 // @return a human-readable string of all the targets
 Game.prototype.targetString = function () {
-  var targets = ''
+  var targets = {}
   for (var i = 0; i < this.targets.length; i++) {
-    targets += Math.pow(2, this.targets[i])
-    if (i !== (this.targets.length - 1)) targets += ', '
+    var target = Math.pow(2, this.targets[i])
+    if (!targets[target]) targets[target] = 0
+    targets[target]++
   }
-  return targets
+  var targetString = ''
+  for (var i in targets) {
+    if (targets[i] === 1) targetString += i
+    else targetString += (targets[i] + ' 个 ' + i)
+    targetString += ', '
+  }
+  return targetString.slice(0, -2)
 }
 // @method Game.mapCopy(map)
 // @param map {Array} the old map
@@ -448,11 +458,23 @@ Game.prototype.reachedTarget = function () {
 // @method Game.toString()
 // @return {String} a human-readable string that indicates the current game state
 Game.prototype.toString = function () {
-  if (this.fake) return this.fake === 'chooser' ? '256 | 选择关卡' : '256'
-  return '256 | ' +
-         (this.clickable ? '选择 2 的位置' : '移动一步') + ' | ' +
-         '目标：' + this.targetString() + ' | ' +
-         (this.won ? 'You won, good job!' : this.over ? 'Game over;)' : '祝你好运！')
+  if (this.fake && this.fake !== 'try') return this.fake
+  return (this.fake ? '3. 请试玩<br>' : '') +
+         (this.clickable ? '选择 2 的位置' : '移动一步') +
+         (this.fake ? '' : '<br>目标：' + this.targetString())
+}
+Game.prototype.restart = function () {
+  for (var i = 0; i < this.map.length; i++) {
+    for (var j = 0; j < this.map[i].length; j++){
+      if (this.map[i][j] && this.map[i][j].value !== Tile.BLOCK) {
+        this.map[i][j].fadeout()
+        this.map[i][j] = null
+      }
+    }
+  }
+  this.won = this.over = false
+  this.clickable = true
+  statusBox.innerHTML = this.toString()
 }
 
 // @function startup()
@@ -476,7 +498,8 @@ var startup = function () {
   // create a fake game
   var game = new Game([-1e100, NaN, 1e100], gamemap)
   hint.innerHTML = 'Hi there! Click something to begin your journey. Maybe... Start with 1?'
-  game.fake = 'chooser' // mark as a fake game
+  game.fake = '选择关卡' // mark as a fake game
+  cont.style.display = back.style.display = restart.style.display = 'none'
   // render with a custom listener
   game.render(function (el) {
     // parse the coords
@@ -486,20 +509,19 @@ var startup = function () {
     var hintStr = hints[pos[1]][pos[0]]
     return function () {
       if (!gameStr) return
+      back.style.display = ''
       if (gameStr === CUSTOM) {
-        hint.style.display = ''
         // 1. choose map size
-        hint.innerHTML = '1. 选择大小'
         var fake = [[], []]
         for (var v = 2; v < 6; v++) fake[(v > 3) ? 1 : 0][(v - 2) % 2] = new Tile(v)
         var map = new Game([NaN], fake)
+        map.fake = '1. 选择大小'
         // render the game to continue to the next step
         map.render(function (el) {
           var pos = JSON.parse(el.getAttribute('coords'))
           return function () {
             // 2. choose blocks
-            var size = 2 + pos[0] * 2 + pos[1]
-            hint.innerHTML = '2. 选择障碍物位置'
+            var size = 2 + pos[1] * 2 + pos[0]
             var fake = []
             for (var i = 0; i < size; i++) {
               fake[i] = []
@@ -507,6 +529,7 @@ var startup = function () {
             }
             // generate a game of blocks
             var blockmap = new Game([NaN], fake)
+            blockmap.fake = '2. 选择障碍物位置'
             blockmap.render(function (el) {
               var pos = JSON.parse(el.getAttribute('coords'))
               // the tile clicked
@@ -529,12 +552,16 @@ var startup = function () {
             cont.onclick = function () {
               // 3. play
               // render with default listeners
+              blockmap.fake = 'try'
               blockmap.render()
-              hint.innerHTML = '3. 请试玩'
+              window.game = blockmap
+              restart.style.display = ''
               cont.onclick = function () {
                 // 4. set targets
+                blockmap.fake = '4. 选择目标'
+                blockmap.render()
                 window.ontouchend = null
-                hint.innerHTML = '4. 选择目标'
+                restart.style.display = 'none'
                 var tiles = $('.empty')
                 for (var i = 0; i < tiles.length; i++) {
                   (function (el) {
@@ -613,6 +640,7 @@ var startup = function () {
       }
       window.game = Game.fromString(gameStr)
       window.game.render()
+      restart.style.display = ''
       hint.innerHTML = hintStr
     }
   })
