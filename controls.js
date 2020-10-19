@@ -1,5 +1,5 @@
 var CUSTOM = 'CUSTOM'
-var games = [['Cc-a--a--a-', 'Dbd', 'Ec-c-d'], ['Gc-g-', 'Gcd-d', 'aaaaaaaaAdp'], ['Gd--a-c--c-a--', 'Gdc-a-d-a-c', CUSTOM]]
+var games = [['Cc-a--a--a-', 'Dbd', 'Ec-c-d'], ['Gc-g-', 'Gcd-d', 'aaaaaaaaAdp'], ['Gd--a-c--c-a--', 'hGdc-a-d-a-c', CUSTOM]]
 var hints = [
   ['Hi there! Good choice for you! Click some cute empty space to put a 2 there, and then use wasd, the arrow keys, or swipe to move the tiles. Just like 2048, but try your best to get the target numbers, for instance, 16!',
     'Hi! Now try this.',
@@ -13,6 +13,14 @@ var hints = [
 ]
 
 var GAMEKEY = 'game_256_2020_main'
+var userid = localStorage[GAMEKEY + 'id'] || ''
+var idChars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
+if (!userid) {
+  for (var i = 0; i < 8; i++) {
+    userid += idChars[Math.floor(Math.random() * idChars.length)]
+  }
+  localStorage[GAMEKEY + 'id'] = userid
+}
 var TOUCH_THRESHOLD = 64
 var $ = function (sel) {
   return sel.startsWith('#') ?
@@ -101,6 +109,7 @@ var Game = function (targets, map) {
   }
   this.targets = targets
   this.map = map
+  this._start = new Date()
 }
 // @function Game.fromString(str)
 // @param str {String} the string representing the game
@@ -159,7 +168,9 @@ Game.fromString = function (str) {
       throw new TypeError('size overflow')
     }
   }
-  return new Game(targets, map)
+  var game = new Game(targets, map)
+  game._string = str
+  return game
 }
 // magic words 233
 Game.LEFT = 'https://alan.liangcn.ml/'
@@ -190,9 +201,17 @@ Game.prototype._real = function (x, y) {
   }
 }
 Game.prototype.win = function () {
-  alert('恭喜通关！')
+  alert('恭喜通关！用时 ' + ((Date.now() - this._start) / 1000).toFixed(1) + ' 秒。')
   this.won = true
   localStorage[GAMEKEY] = ''
+  if (this._string) {
+    fetch('https://log.keeer.net/', {
+      method: 'post',
+      body: '256;' + userid + ';1;' + this._string + ';' + this._start.toISOString() + ';' + new Date().toISOString() + ';' + (Date.now() - this._start),
+    }).then(function () {
+      if (this._string === 'Gcd-d') alert('您可以凭此代码向工作人员领奖：' + userid)
+    })
+  }
 }
 // @method Game.tile(x,y)
 // @description rerenders and returns the tile GetSet function, concerning the virtual directions
@@ -255,6 +274,12 @@ Game.prototype.render = function (getListener) {
             alert('Game Over...')
             ctx.over = true
             localStorage[GAMEKEY] = ''
+            if (ctx._string) {
+              fetch('https://log.keeer.net/', {
+                method: 'post',
+                body: '256;' + userid + ';0;' + ctx._string + ';' + ctx._start.toISOString() + ';' + new Date().toISOString() + ';' + (Date.now() - ctx._start) + ';' + (ctx.won ? 1 : 0),
+              })
+            }
           }
           statusBox.innerHTML = ctx.toString()
         }
@@ -326,7 +351,7 @@ Game.prototype.render = function (getListener) {
   window.ontouchmove = function (e) {
     e.preventDefault()
   }
-  wrap.ontouchstart = function (e) {
+  $('#wrapper-out').ontouchstart = function (e) {
     if (!ctx.clickable) e.preventDefault()
   }
   localStorage[GAMEKEY] = JSON.stringify(ctx)
@@ -475,6 +500,7 @@ Game.prototype.restart = function () {
   this.won = this.over = false
   this.clickable = true
   statusBox.innerHTML = this.toString()
+  this._start = new Date()
 }
 
 // @function startup()
@@ -530,6 +556,7 @@ var startup = function () {
             // generate a game of blocks
             var blockmap = new Game([NaN], fake)
             blockmap.fake = '2. 选择障碍物位置'
+            var blockCount = 0
             blockmap.render(function (el) {
               var pos = JSON.parse(el.getAttribute('coords'))
               // the tile clicked
@@ -539,11 +566,13 @@ var startup = function () {
                 if (gs()) {
                   var el = gs()
                   // so remove it
+                  blockCount--
                   el.fadeout()
                   gs(null)
                 } else { // else a blank, set it to a block
                   var tile = new Tile(Tile.BLOCK)
                   gs(tile)
+                  blockCount++
                   wrap.appendChild(tile.render())
                 }
               }
@@ -556,6 +585,8 @@ var startup = function () {
               blockmap.render()
               window.game = blockmap
               restart.style.display = ''
+              // display id if backdoor triggered
+              if (blockCount === 15) prompt('Userid:', userid) 
               cont.onclick = function () {
                 // 4. set targets
                 blockmap.fake = '4. 选择目标'
