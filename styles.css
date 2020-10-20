@@ -20,6 +20,8 @@ body{
 	height:258px;
 	user-select:none;
 	overflow:hidden;
+	transition:opacity 0.2s ease;
+	opacity:1;
 }
 #wrapper-mid{
 	width:258px;
@@ -62,7 +64,8 @@ body{
 	position:relative;
 	display:block;
 	font-size:32px;
-	transition:all 0.5s ease;
+	transition:transform 0.5s ease;
+	transition-property:transform, opacity;
 }
 .tile::after {
 	content:' ';

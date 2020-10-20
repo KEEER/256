@@ -12,6 +12,29 @@ var hints = [
     'TBD']
 ]
 
+function trackEvent (type, data, retries) {
+  if (retries > 6) return alert('暂时无法连接到服务器……')
+  var payload = {
+    type: type,
+    userid: userid,
+  }
+  if (data !== undefined) payload.data = data
+  if (retries !== undefined) payload.retries = retries
+  var xhr = new XMLHttpRequest()
+  xhr.open('POST', 'https://log.keeer.net/256')
+  xhr.send(JSON.stringify(payload))
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState !== 4 || xhr.status === 0) return
+    if (xhr.status === 204) return
+    if (xhr.status !== 200) return retry()
+    alert(xhr.responseText) 
+  }
+  xhr.onerror = retry
+  function retry (e) {
+    setTimeout(function () { trackEvent(type, data, (retries || 0) + 1) }, retries ? retries * 1000 : 1000)
+  }
+}
+
 var GAMEKEY = 'game_256_2020_main'
 var userid = localStorage[GAMEKEY + 'id'] || ''
 var idChars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -20,7 +43,9 @@ if (!userid) {
     userid += idChars[Math.floor(Math.random() * idChars.length)]
   }
   localStorage[GAMEKEY + 'id'] = userid
+  trackEvent('new-user')
 }
+trackEvent('load', location.href)
 var TOUCH_THRESHOLD = 64
 var $ = function (sel) {
   return sel.startsWith('#') ?
@@ -42,6 +67,7 @@ var isLower = function (str, pos) {
   return code - 96
 }
 var emptyWrap = $('#wrapper-in')
+var outWrap = $('#wrapper-out')
 var wrap = $('#wrapper')
 var statusBox = $('#status')
 var hint = $('#hint')
@@ -82,8 +108,7 @@ Tile.prototype.render = function (x, y, size) {
   }
   var el = this.el
   el.className = 'tile'
-  el.style.top = y * size + 1 + 'px'
-  el.style.left = x * size + 1 + 'px'
+  el.style.transform = 'translate(' + (x * size + 1 + 'px') + ',' + (y * size + 1 + 'px') + ')'
   el.style.fontSize = size / 2.6 + 'px'
   el.style.width = el.style.height = el.style.lineHeight = size + 'px'
   el.innerText = this.value === Tile.BLOCK ? ' ' : Math.pow(2, this.value)
@@ -110,6 +135,7 @@ var Game = function (targets, map) {
   this.targets = targets
   this.map = map
   this._start = new Date()
+  this.tries = 1
 }
 // @function Game.fromString(str)
 // @param str {String} the string representing the game
@@ -204,13 +230,15 @@ Game.prototype.win = function () {
   alert('恭喜通关！用时 ' + ((Date.now() - this._start) / 1000).toFixed(1) + ' 秒。')
   this.won = true
   localStorage[GAMEKEY] = ''
-  if (this._string) {
-    fetch('https://log.keeer.net/', {
-      method: 'post',
-      body: '256;' + userid + ';1;' + this._string + ';' + this._start.toISOString() + ';' + new Date().toISOString() + ';' + (Date.now() - this._start),
-    }).then(function () {
-      if (this._string === 'Gcd-d') alert('您可以凭此代码向工作人员领奖：' + userid)
-    })
+  trackEvent('win', {
+    string: this._string || '',
+    start: this._start,
+    end: new Date(),
+    tries: this.tries,
+  })
+  if (this._string === 'Gcd-d' && !localStorage[GAMEKEY + 'passed']) {
+    localStorage[GAMEKEY + 'passed'] = '1'
+    alert('您可以凭此代码向工作人员领奖：' + userid)
   }
 }
 // @method Game.tile(x,y)
@@ -274,12 +302,13 @@ Game.prototype.render = function (getListener) {
             alert('Game Over...')
             ctx.over = true
             localStorage[GAMEKEY] = ''
-            if (ctx._string) {
-              fetch('https://log.keeer.net/', {
-                method: 'post',
-                body: '256;' + userid + ';0;' + ctx._string + ';' + ctx._start.toISOString() + ';' + new Date().toISOString() + ';' + (Date.now() - ctx._start) + ';' + (ctx.won ? 1 : 0),
-              })
-            }
+            trackEvent('over', {
+              start: this._start,
+              end: new Date(),
+              string: this._string || '',
+              won: this.won,
+              tries: this.tries,
+            })
           }
           statusBox.innerHTML = ctx.toString()
         }
@@ -500,6 +529,12 @@ Game.prototype.restart = function () {
   this.won = this.over = false
   this.clickable = true
   statusBox.innerHTML = this.toString()
+  this.tries++
+  trackEvent('restart', {
+    lastStart: this._start,
+    tries: this.tries,
+    string: this._string || '',
+  })
   this._start = new Date()
 }
 
@@ -534,6 +569,7 @@ var startup = function () {
     var gameStr = games[pos[1]][pos[0]]
     var hintStr = hints[pos[1]][pos[0]]
     return function () {
+      trackEvent('choose', pos)
       if (!gameStr) return
       back.style.display = ''
       if (gameStr === CUSTOM) {
@@ -670,7 +706,11 @@ var startup = function () {
         return
       }
       window.game = Game.fromString(gameStr)
-      window.game.render()
+      outWrap.style.opacity = 0
+      setTimeout(function () {
+        window.game.render()
+        outWrap.style.opacity = 1
+      }, 200)
       restart.style.display = ''
       hint.innerHTML = hintStr
     }
@@ -736,4 +776,18 @@ if (!localStorage[GAMEKEY]) {
       window.game = startup()
     }
   }
+}
+
+var restartuping = false
+function restartup () {
+  if (restartuping) return
+  restartuping = true
+  outWrap.style.opacity = 0
+  setTimeout(function () {
+    restartuping = false
+    startup()
+    setTimeout(function () {
+      outWrap.style.opacity = 1
+    }, 50)
+  }, 200)
 }
