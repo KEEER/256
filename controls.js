@@ -771,6 +771,9 @@ if (!localStorage[GAMEKEY]) {
       if (obj.clickable !== undefined) game.clickable = obj.clickable
       game.size = obj.size
       game.won = obj.won
+      game._string = obj.string
+      game.start = new Date(obj.start)
+      game.tries = obj.tries
       game.render()
     } else {
       window.game = startup()
