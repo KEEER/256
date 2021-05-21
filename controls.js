@@ -20,7 +20,6 @@ function trackEvent (type, data, retries) {
   }
   if (data !== undefined) payload.data = data
   if (retries !== undefined) payload.retries = retries
-  if (!retries && window.umami) umami(JSON.stringify(payload))
   var xhr = new XMLHttpRequest()
   xhr.open('POST', 'https://log.keeer.net/256')
   xhr.send(JSON.stringify(payload))
