@@ -13,7 +13,7 @@ var hints = [
 ]
 
 function trackEvent (type, data, retries) {
-  if (retries > 6) return alert('暂时无法连接到服务器……')
+  if (retries > 6) return // alert('暂时无法连接到服务器……')
   var payload = {
     type: type,
     userid: userid,
@@ -199,6 +199,7 @@ Game.fromString = function (str) {
   return game
 }
 // magic words 233
+// Historical note: link and email are outdated and now invalid. Please contact core@keeer.net if you have questions.
 Game.LEFT = 'https://alan.liangcn.ml/'
 Game.RIGHT = 'Author: Alan-Liang@KEEER'
 Game.UP = 'Email: alan-liang@keeer.ga'
@@ -238,7 +239,8 @@ Game.prototype.win = function () {
   })
   if (this._string === 'Gcd-d' && !localStorage[GAMEKEY + 'passed']) {
     localStorage[GAMEKEY + 'passed'] = '1'
-    alert('您可以凭此代码向工作人员领奖：' + userid)
+    // The following alert was used in an event in 2020
+    // alert('您可以凭此代码向工作人员领奖：' + userid)
   }
 }
 // @method Game.tile(x,y)
